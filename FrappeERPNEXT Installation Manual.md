@@ -1,258 +1,141 @@
 # Frappe-Installation-Manual
 Frappe Installation Manual
-تم تنسيق دليل التثبيت الخاص بك إلى ملف Markdown منظّم وجاهز للاستخدام على أوبنتو، وستجد أدناه النسخة النهائية مع تقسيم واضح وخطوات عملية بالأوامر كما طلبت.[1]
 
-***
-title: "Frappe/ERPNext Installation Manual (Ubuntu 22.04, v14)"
-***
-
-### Overview
-Operational steps for installing Frappe/ERPNext are grouped into four main phases: Before Installation, Installation, Frappe Installation, and Production Setup.[1]
-
-- Before Installation: Update/upgrade packages and ensure a non‑root user.[1]
-- Installation: Install and configure required system packages and services.[1]
-- Frappe Installation: Install bench, initialize the environment, and create a site.[1]
-- Production Setup: Enable scheduler, configure production, and set up services.[1]
-
-### Before Installation
-Ensure the system is up to date and work with a non‑root user for security and proper environment setup.[1]
-
-- Update and upgrade system packages, then reboot.[1]
-
-```bash
-sudo apt-get update -y
-sudo apt-get upgrade -y
+## Frappe Installation Manual
+Operational steps for installation:
+Operational Steps for Installation Can Be Summarized In 4 Main Steps/Processes:
+o	Before Installation
+1)	Insure Update & Upgrade Packages.
+2)	Insure a non-root User.
+o	Installation
+3)	Start Install Required Packages
+4)	Install Frappe
+Before Installation
+1.	Update & Upgrade Packages
+•	Make sure you install the latest package versions by Updating System Packages 
+sudo apt-get update -y sudo apt-get upgrade -y
 sudo reboot
-```
-
-- Create a non-root user (bench user), add to sudoers, switch to it, and move to its home directory.[1]
-
-```bash
-sudo adduser frappe
-sudo usermod -aG sudo frappe
-su frappe
-cd /home/frappe
-```
-
-### Install required packages
-Install Git, Python 3.10 and tooling, virtualenv, repository tools, MariaDB, Redis, and other runtime dependencies needed by ERPNext.[1]
-
-- Install Git.[1]
-
-```bash
-sudo apt-get install git -y
-```
-
-- Install Python toolchain (ERPNext v14 needs Python 3.10+).[1]
-
-```bash
-sudo apt-get install -y python3-dev python3.10-dev python3-setuptools python3-pip python3-distutils
-```
-
-- Install Python venv.[1]
-
-```bash
-sudo apt-get install -y python3.10-venv
-```
-
-- Install software-properties-common for repo management.[1]
-
-```bash
-sudo apt-get install -y software-properties-common
-```
-
-- Install MariaDB server and client.[1]
-
-```bash
-sudo apt install -y mariadb-server mariadb-client
-```
-
-- Install Redis Server.[1]
-
-```bash
-sudo apt-get install -y redis-server
-```
-
-- Install other dependencies (xvfb, fonts, PDF, MySQL client libs).[1]
-
-```bash
-sudo apt-get install -y xvfb libfontconfig wkhtmltopdf libmysqlclient-dev
-```
-
-### Configure MySQL
-Secure the MariaDB installation and set character encodings for Frappe/ERPNext compatibility.[1]
-
-- Run MySQL secure installation and follow prompts as indicated below.[1]
-
-```bash
+2.	Important!  | Create a non-root User
+Create a new user – (bench user)
+	Ian linux, the root user processes escalated privileges to perform any tasks within the system. This is why it is not advisable to use this user on a daily basis. We will create a user that we can use, and this will be the user we will also use as the Frappe Bench User.
+	If your default user is root: >> Create a non-root User by following these steps:
+1.	Create a new user (you can change frappe to your preferred user name):
+$ sudo adduser frappe
+Full Name []: frappe
+Room Number []:
+Work Phone []:
+Home Phone []:
+Other []:
+Is the information correct? [Y]
+2.	Add the user to sudoers:
+$ usermod -aG sudo frappe
+3.	Switch to created user:
+$ su frappe
+4.	Ensure you're on created user's home directory:
+$ cd /home/frappe
+5.	Continue with the next steps below.
+________________________________________
+Installation
+3.	Install Required Packages: >>>>
+	A software like ERPNext, which is built on Frappe Framework, requires a number of packages in order to run smoothly. These are the packages we will be installing in this step.
+Install GIT
+sudo apt-get install git
+Install Python
+	ERPNext version 14 requires Python version 3.10+. This is what we will install in this step.
+sudo apt-get install python3-dev python3.10-dev python3-setuptools python3-pip python3-distutils
+Install Python Virtual Environment
+	A virtual environment helps in managing the dependencies for one software at one place, without having to interfere with other sections in the computer or server in which the software is running.
+sudo apt-get install python3.10-venv
+Install Software Properties Common
+	Software Properties Common will help in repository management.
+sudo apt-get install software-properties-common
+Install MariaDB
+sudo apt install mariadb-server mariadb-client
+Install Redis Server
+sudo apt-get install redis-server
+Install other packages
+	ERPNext functionality also relies on other packages we will install in this step. These will load fonts, PDFs, and other resources to our instance.
+sudo apt-get install xvfb libfontconfig wkhtmltopdf sudo apt-get install libmysqlclient-dev
+	Configure MYSQL Server
+Setup the server
 sudo mysql_secure_installation
-```
-
-- Prompts guide: enter current root password (SSH root), enable unix_socket auth (Y), change root password (Y), remove anonymous users (Y), disallow root remote login (N), remove test DB (Y), reload privileges (Y).[1]
-
-- Edit MySQL defaults to utf8mb4 and restart the service.[1]
-
-```bash
+	When you run this command, the server will show the following prompts. Please follow the steps as shown below to complete the setup correctly.
+	Enter current password for root: (Enter your SSH root user password)
+	Switch to unix_socket authentication [Y/n]: Y
+	Change the root password? [Y/n]: Y
+It will ask you to set new MySQL root password at this step. This can be different from the SSH root user password.
+	Remove anonymous users? [Y/n] Y
+	Disallow root login remotely? [Y/n]: N
+This is set as N because we might want to access the database from a remote server for using business analytics software like Metabase / PowerBI / Tableau, etc.
+	Remove test database and access to it? [Y/n]: Y
+	Reload privilege tables now? [Y/n]: Y
+Edit MYSQL default config file
 sudo nano /etc/mysql/my.cnf
-```
-
-Add the following, then save:[1]
-
-```
-[mysqld]
-character-set-client-handshake = FALSE
-character-set-server = utf8mb4
-collation-server = utf8mb4_unicode_ci
-
-[mysql]
-default-character-set = utf8mb4
-```
-
-Restart MySQL:[1]
-
-```bash
+	Add the following block of code exactly as is:
+[mysqld] character-set-client-handshake = FALSE character-set-server = utf8mb4 collation-server = utf8mb4_unicode_ci [mysql] default-character-set = utf8mb4
+Restart the MYSQL Server
 sudo service mysql restart
-```
-
-### Install curl, Node, npm, Yarn
-Install curl, Node via nvm (Node 16.15.0 for v14), npm, and Yarn globally.[1]
-
-- Install curl.[1]
-
-```bash
-sudo apt install -y curl
-```
-
-- Install Node using nvm and load the profile, then install Node 16.15.0.[1]
-
-```bash
-curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-source ~/.profile
-nvm install 16.15.0
-```
-
-- Install npm.[1]
-
-```bash
-sudo apt-get install -y npm
-```
-
-- Install Yarn globally.[1]
-
-```bash
+	Instal CURL, Node, NPM and Yarn
+Install CURL
+sudo apt install curl
+Install Node
+curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash source ~/.profile nvm install 16.15.0
+Install NPM
+sudo apt-get install npm
+Install Yarn
 sudo npm install -g yarn
-```
 
-### Install Frappe (bench)
-Install bench, initialize a bench folder, enter it, and set directory permissions for the bench user.[1]
+All the packages required to run Frappe have been installed.
 
-- Install Frappe Bench.[1]
-
-```bash
+4.	Install Frappe
+Install Frappe Bench
 sudo pip3 install frappe-bench
-```
-
-- Initialize bench for Frappe v14.[1]
-
-```bash
+Initialize Frappe Bench
 bench init --frappe-branch version-14 frappe-bench
-```
-
-- Change directory to the bench folder.[1]
-
-```bash
+Switch directories into the Frappe Bench directory
 cd frappe-bench
-```
-
-- Grant execute permission to the bench user on its home directory.[1]
-
-```bash
+Change user directory permissions
+	This will give the bench user execution permission to the home directory.
 chmod -R o+rx /home/frappe
-```
 
-### Create site and install apps
-Create a site, fetch ERPNext and optional apps (e.g., HRMS), then install them on the site.[1]
-
-- Create a new site (replace [site-name]).[1]
-
-```bash
+Now, Ready To Deployment Your Site And Install Apps On It.
+Create a New Site
+	A site is a requirement in ERPNext, Frappe and all the other apps we will be needing to install. We will create the site in this step.
 bench new-site [site-name]
-```
 
-- Get ERPNext app for v14.[1]
-
-```bash
+Install ERPNext and other Apps
+	The first app we will download is the ERPNext app. This app is required when setting up ERPNext.
 bench get-app --branch version-14 erpnext
-```
-
-- Optionally get HRMS or other apps similarly.[1]
-
-```bash
+	Download any other app you may be interested in in a similar manner. For instance, if you need the Human Resource app to be installed, use the following command.
 bench get-app hrms
-```
 
-- Install ERPNext on the site.[1]
-
-```bash
+Install Apps on Site
 bench --site [site-name] install-app erpnext
-```
-
-- Install other apps on the site (example: HRMS).[1]
-
-```bash
+	Install all the other apps in the same way. For example, if you downloaded the human resource app, use the below command to install it.
 bench --site [site-name] install-app hrms
-```
 
-### Run development server
-Start the development server and access ERPNext on port 8000 if no other instance is running.[1]
-
-- Start the server.[1]
-
-```bash
+	We have successfully setup ERPNext version 14 on ubuntu 22.04. You can start the server by running the below command:
 bench start
-```
+	If you didn’t have any other ERPNext instance running on the same server, ERPNext will get started on port 8000. If you visit [YOUR SERVER IP:8000], you should be able to see ERPNext version 14 running.
+	Please note that instances which are running on develop mode, like the one we just setup, will not get started when you restart your server. You will need to run the bench start command every time the server restarts.
+	In the below steps, we will learn how to deploy the production mode.
 
-- Access via http://YOUR_SERVER_IP:8000 to see ERPNext v14 running if the port is free.[1]
-
-- Note: in develop mode, the server will not auto-start on reboot; rerun bench start after restarts.[1]
-
-### Production setup
-Switch to production mode so services start automatically and the site is served without a port in the URL.[1]
-
-- Enable scheduler on the site.[1]
-
-```bash
+	Setting ERPNext for Production
+Enable Scheduler
 bench --site [site-name] enable-scheduler
-```
-
-- Disable maintenance mode.[1]
-
-```bash
+Disable maintenance mode
 bench --site [site-name] set-maintenance-mode off
-```
-
-- Set up production configuration for the bench user (replace with your bench user if different).[1]
-
-```bash
+Setup production config
 sudo bench setup production frappe
-```
-
-- Generate and apply NGINX configuration.[1]
-
-```bash
+Setup NGINX to apply the changes
 bench setup nginx
-```
+Restart Supervisor and Launch Production Mode
+sudo supervisorctl restart all sudo bench setup production frappe
+	If you are prompted to save the new/existing config file, respond with a Y.
+	When this completes doing the settings, your instance is now on production mode and can be accessed using your IP, without needing to use the port.
+	This also will mean that your instance will start automatically even in the event you restart the server.
 
-- Restart Supervisor and finalize production setup, accepting to save updated configs when prompted.[1]
 
-```bash
-sudo supervisorctl restart all
-sudo bench setup production frappe
-```
+Finsh! GOOD LUCK!
 
-- After completion, the instance runs in production and is accessible via the server IP without specifying the port, and will auto-start on server reboot.[1]
 
-### Finish
-Your ERPNext v14 on Ubuntu 22.04 is now ready; good luck.[1]
-
-[1](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/71173464/8b4e168f-c3ba-4c96-b559-568c9c823191/FrappeERPNEXT-Installation-Manual.docx)
